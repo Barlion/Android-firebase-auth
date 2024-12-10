@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "795314091828",
+    "project_id": "code-cupid",
+    "storage_bucket": "code-cupid.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:795314091828:android:a111997b77b0e907c35761",
+        "android_client_info": {
+          "package_name": "com.barlion.myfirstapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "795314091828-cvr808qvuomu7n3rq9i4a2vid4252lms.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsKF3-Q685bKtkWheCOIkkQic8h7OtjcM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "795314091828-cvr808qvuomu7n3rq9i4a2vid4252lms.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
