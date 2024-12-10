@@ -1,5 +1,7 @@
 package com.barlion.myfirstapp
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -20,12 +22,15 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.*
 import com.barlion.myfirstapp.ui.theme.MyFirstAppTheme
 import com.barlion.myfirstapp.ui.theme.Purple500
 import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,105 +38,31 @@ class MainActivity : ComponentActivity() {
         // Initialize Firebase Auth
         auth = FirebaseAuth.getInstance()
 
+        // Initialize SharedPreferences
+        sharedPreferences = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+
         setContent {
             MyFirstAppTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                val navController = rememberNavController()
+
+                // Check if user opted to stay logged in
+                val isLoggedIn = sharedPreferences.getBoolean("keep_logged_in", false)
+
+                NavHost(
+                    navController = navController,
+                    startDestination = if (isLoggedIn) "menu" else "login_signup"
                 ) {
-                    LoginSignupScreen(auth)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun LoginSignupScreen(auth: FirebaseAuth) {
-    // Track whether the user is on the login or sign-up screen
-    var isLogin by remember { mutableStateOf(true) }
-
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Background image
-        Image(
-            painter = painterResource(id = R.drawable.backg),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.Center)
-                .padding(24.dp)
-        ) {
-            // Title
-            Text(
-                text = if (isLogin) "Login" else "Sign Up",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.align(Alignment.Start)
-            )
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            // User input states
-            var email by remember { mutableStateOf("") }
-            var password by remember { mutableStateOf("") }
-
-            // Input fields
-            CustomTextField(label = "Email", value = email, onValueChange = { email = it })
-            Spacer(modifier = Modifier.height(16.dp))
-            CustomTextField(
-                label = "Password",
-                value = password,
-                onValueChange = { password = it },
-                isPassword = true
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Login/Sign-up button
-            Button(
-                onClick = {
-                    if (isLogin) {
-                        loginUser(auth, email, password)
-                    } else {
-                        signupUser(auth, email, password)
+                    composable("login_signup") {
+                        LoginSignupScreen(auth, navController, sharedPreferences)
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Purple500,
-                    contentColor = Color.White
-                ),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Text(
-                    text = if (isLogin) "Login" else "Sign Up",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Toggle login/sign-up
-            TextButton(
-                onClick = { isLogin = !isLogin },
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Text(
-                    text = if (isLogin) "Don't have an account? Sign Up" else "Already have an account? Login",
-                    color = Purple500,
-                    fontWeight = FontWeight.Bold
-                )
+                    composable("menu") {
+                        MenuScreen(navController)
+                    }
+                    composable("todo_list") {
+                        ToDoListScreen()
+                    }
+                    // Add other services here as composable routes
+                }
             }
         }
     }
@@ -144,13 +75,17 @@ fun CustomTextField(
     onValueChange: (String) -> Unit,
     isPassword: Boolean = false
 ) {
-    Column {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Label for the text field
         Text(
             text = label,
             color = Color.Black,
             fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp,
             modifier = Modifier.padding(bottom = 8.dp)
         )
+
+        // The actual text field
         BasicTextField(
             value = value,
             onValueChange = onValueChange,
@@ -163,7 +98,94 @@ fun CustomTextField(
     }
 }
 
-fun loginUser(auth: FirebaseAuth, email: String, password: String) {
+@Composable
+fun LoginSignupScreen(auth: FirebaseAuth, navController: NavController, sharedPreferences: SharedPreferences) {
+    var isLogin by remember { mutableStateOf(true) }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var keepLoggedIn by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Background image
+        Image(
+            painter = painterResource(id = R.drawable.firstback),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center)
+                .padding(24.dp)
+        ) {
+            Text(
+                text = if (isLogin) "Login" else "Sign Up",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+                modifier = Modifier.align(Alignment.Start)
+            )
+
+            Spacer(modifier = Modifier.height(40.dp))
+
+            CustomTextField(label = "Email", value = email, onValueChange = { email = it })
+            Spacer(modifier = Modifier.height(16.dp))
+            CustomTextField(
+                label = "Password",
+                value = password,
+                onValueChange = { password = it },
+                isPassword = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Checkbox for "Keep Me Logged In"
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = keepLoggedIn, onCheckedChange = { keepLoggedIn = it })
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Keep Me Logged In", color = Color.Black)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    if (isLogin) {
+                        loginUser(auth, email, password, navController, sharedPreferences, keepLoggedIn)
+                    } else {
+                        signupUser(auth, email, password, navController, sharedPreferences, keepLoggedIn)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Purple500, contentColor = Color.White),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(text = if (isLogin) "Login" else "Sign Up", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(onClick = { isLogin = !isLogin }) {
+                Text(
+                    text = if (isLogin) "Don't have an account? Sign Up" else "Already have an account? Login",
+                    color = Purple500,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
+fun loginUser(
+    auth: FirebaseAuth,
+    email: String,
+    password: String,
+    navController: NavController,
+    sharedPreferences: SharedPreferences,
+    keepLoggedIn: Boolean
+) {
     if (email.isBlank() || password.isBlank()) {
         Toast.makeText(auth.app.applicationContext, "Fields cannot be empty", Toast.LENGTH_SHORT).show()
         return
@@ -172,6 +194,12 @@ fun loginUser(auth: FirebaseAuth, email: String, password: String) {
     auth.signInWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
+                // Save "keep me logged in" state
+                if (keepLoggedIn) {
+                    sharedPreferences.edit().putBoolean("keep_logged_in", true).apply()
+                }
+
+                navController.navigate("menu")
                 Toast.makeText(auth.app.applicationContext, "Login successful!", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(auth.app.applicationContext, "Login failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
@@ -179,7 +207,14 @@ fun loginUser(auth: FirebaseAuth, email: String, password: String) {
         }
 }
 
-fun signupUser(auth: FirebaseAuth, email: String, password: String) {
+fun signupUser(
+    auth: FirebaseAuth,
+    email: String,
+    password: String,
+    navController: NavController,
+    sharedPreferences: SharedPreferences,
+    keepLoggedIn: Boolean
+) {
     if (email.isBlank() || password.isBlank()) {
         Toast.makeText(auth.app.applicationContext, "Fields cannot be empty", Toast.LENGTH_SHORT).show()
         return
@@ -188,6 +223,12 @@ fun signupUser(auth: FirebaseAuth, email: String, password: String) {
     auth.createUserWithEmailAndPassword(email, password)
         .addOnCompleteListener { task ->
             if (task.isSuccessful) {
+                // Save "keep me logged in" state
+                if (keepLoggedIn) {
+                    sharedPreferences.edit().putBoolean("keep_logged_in", true).apply()
+                }
+
+                navController.navigate("menu")
                 Toast.makeText(auth.app.applicationContext, "Signup successful!", Toast.LENGTH_SHORT).show()
             } else {
                 Toast.makeText(auth.app.applicationContext, "Signup failed: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
